@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit-integration-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install deps
+        run: uv sync --extra dev
+
+      - name: Lint (ruff)
+        run: uv run ruff check signalgate tests
+
+      - name: Pytest (non-e2e)
+        run: uv run pytest -m "not e2e" -ra
+
+  docker-blackbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure docker compose is available
+        run: |
+          docker version
+          docker compose version || (sudo apt-get update && sudo apt-get install -y docker-compose-plugin)
+          docker compose version
+
+      - name: Docker compose black-box test
+        run: bash ./scripts/docker_test.sh

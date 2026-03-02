@@ -1,0 +1,34 @@
+services:
+  mock-openai:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mock-openai
+    ports:
+      - "9999:9999"
+
+  signalgate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.signalgate
+    environment:
+      SIGNALGATE_CONFIG_PATH: /config/config.test.json
+      SIGNALGATE_TOKEN: testtoken
+      SIGNALGATE_USER_SALT: testsalt
+      OPENAI_API_KEY: dummy
+      GEMINI_API_KEY: dummy
+    volumes:
+      - ./docker:/config:ro
+    depends_on:
+      - mock-openai
+    ports:
+      - "8765:8765"
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.test-runner
+    environment:
+      SIGNALGATE_URL: http://signalgate:8765
+      SIGNALGATE_TOKEN: testtoken
+    depends_on:
+      - signalgate

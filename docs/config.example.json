@@ -1,0 +1,122 @@
+{
+  "version": "0.1.0",
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8765,
+    "log_level": "info",
+    "router_wall_deadline_seconds": 60,
+    "uds_path": "/tmp/signalgate.sock"
+  },
+  "security": {
+    "auth": {
+      "enabled": true,
+      "header": "x-signalgate-token",
+      "token_env": "SIGNALGATE_TOKEN",
+      "allow_health": true
+    },
+    "max_body_bytes": 1000000,
+    "upstreams": {
+      "allow_http": false,
+      "allowlist": {
+        "openai": [
+          "api.openai.com"
+        ],
+        "gemini": [
+          "generativelanguage.googleapis.com"
+        ]
+      }
+    },
+    "forward_user": {
+      "mode": "hash",
+      "salt_env": "SIGNALGATE_USER_SALT"
+    },
+    "request_fields": {
+      "mode": "strip_unknown"
+    }
+  },
+  "paths": {
+    "manifest_path": "./docs/manifest.example.json",
+    "knn_dataset_path": "./data/knn_dataset.jsonl",
+    "knn_index_path": "./data/knn.index",
+    "embedding_model_path": "/path/to/embedding-model.gguf"
+  },
+  "features": {
+    "enable_streaming": false,
+    "enable_shadow_mode": false,
+    "enable_canary": false,
+    "enable_two_phase_tools": false,
+    "enable_auto_tuning": false,
+    "enable_response_debug": false
+  },
+  "routing": {
+    "default_virtual_model": "signalgate/auto",
+    "provider_preference": [
+      "gemini",
+      "openai",
+      "other"
+    ],
+    "enable_stickiness": true,
+    "stickiness_key": "conversation"
+  },
+  "classifier": {
+    "enabled": false,
+    "sim_threshold": 0.75,
+    "margin_threshold": 0.05,
+    "min_tier_for_high_risk": "balanced"
+  },
+  "limits": {
+    "max_in_flight_global": 16,
+    "max_in_flight_per_provider": 8,
+    "max_in_flight_per_model": 4,
+    "max_queue_depth": 200
+  },
+  "metrics": {
+    "enabled": false,
+    "jsonl_path": "./data/metrics.jsonl"
+  },
+  "two_phase": {
+    "min_margin_for_plan": 0.03
+  },
+  "timeouts": {
+    "connect_seconds": 3,
+    "first_byte_seconds": 15,
+    "read_seconds": 60
+  },
+  "breakers": {
+    "enabled": true,
+    "rolling_window_seconds": 120,
+    "min_samples": 20,
+    "consecutive_failures": 5,
+    "error_rate": 0.3,
+    "timeout_rate": 0.2,
+    "cooldown_seconds": 120
+  },
+  "budgets": {
+    "enabled": false,
+    "window": "day",
+    "usd": {
+      "per_provider": {
+        "openai": 0
+      },
+      "per_tier": {
+        "premium": 0
+      }
+    },
+    "degradation": {
+      "when_premium_exceeded": "degrade_to_balanced",
+      "preserve_premium_for_high_risk": true
+    }
+  },
+  "upstreams": {
+    "openai": {
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY",
+      "default_model": "gpt-4.1-mini"
+    },
+    "gemini": {
+      "api_key_env": "GEMINI_API_KEY",
+      "base_url": "https://generativelanguage.googleapis.com",
+      "api_version": "v1beta"
+    }
+  }
+}

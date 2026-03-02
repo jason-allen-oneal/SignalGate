@@ -1,0 +1,20 @@
+{
+  "version": "test-0.1.0",
+  "providerPreference": ["openai"],
+  "models": {
+    "openai_mock": {
+      "provider": "openai",
+      "model_id": "mock-model",
+      "eligible_tiers": ["balanced", "premium", "budget"],
+      "supports": {"tools": false, "json_schema": false, "streaming": true},
+      "limits": {"context_window_tokens": 8192, "max_output_tokens": 2048},
+      "pricing": {"input_usd_per_1m": 1.0, "output_usd_per_1m": 1.0},
+      "routing": {"cost_weight": 1.0, "preference_bias": 0.0}
+    }
+  },
+  "tiers": {
+    "budget": ["openai_mock"],
+    "balanced": ["openai_mock"],
+    "premium": ["openai_mock"]
+  }
+}

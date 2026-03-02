@@ -1,0 +1,575 @@
+{
+  "$id": "https://signalgate.dev/schema/config.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "breakers": {
+      "additionalProperties": false,
+      "properties": {
+        "consecutive_failures": {
+          "default": 5,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "cooldown_seconds": {
+          "default": 120,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        },
+        "error_rate": {
+          "default": 0.3,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_samples": {
+          "default": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "rolling_window_seconds": {
+          "default": 120,
+          "minimum": 10,
+          "type": "integer"
+        },
+        "timeout_rate": {
+          "default": 0.2,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "budgets": {
+      "additionalProperties": false,
+      "properties": {
+        "degradation": {
+          "additionalProperties": false,
+          "properties": {
+            "preserve_premium_for_high_risk": {
+              "default": true,
+              "type": "boolean"
+            },
+            "when_premium_exceeded": {
+              "default": "degrade_to_balanced",
+              "enum": [
+                "degrade_to_balanced",
+                "require_explicit_premium"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "enabled": {
+          "default": false,
+          "type": "boolean"
+        },
+        "usd": {
+          "additionalProperties": false,
+          "properties": {
+            "per_provider": {
+              "additionalProperties": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "type": "object"
+            },
+            "per_tier": {
+              "additionalProperties": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "window": {
+          "default": "day",
+          "enum": [
+            "hour",
+            "day"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "canary": {
+      "additionalProperties": false,
+      "properties": {
+        "allowlist": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "hash_salt": {
+          "default": "signalgate",
+          "minLength": 1,
+          "type": "string"
+        },
+        "mode": {
+          "default": "percent",
+          "enum": [
+            "allowlist",
+            "percent"
+          ],
+          "type": "string"
+        },
+        "percent": {
+          "default": 0,
+          "maximum": 100,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "classifier": {
+      "additionalProperties": false,
+      "properties": {
+        "auto_tuning": {
+          "additionalProperties": false,
+          "properties": {
+            "max_margin_threshold": {
+              "default": 0.2,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "max_sim_threshold": {
+              "default": 0.9,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "min_margin_threshold": {
+              "default": 0.02,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "min_sim_threshold": {
+              "default": 0.65,
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "tune_interval_seconds": {
+              "default": 86400,
+              "minimum": 3600,
+              "type": "integer"
+            }
+          },
+          "type": "object"
+        },
+        "enabled": {
+          "default": false,
+          "type": "boolean"
+        },
+        "margin_threshold": {
+          "default": 0.05,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "min_tier_for_high_risk": {
+          "default": "balanced",
+          "enum": [
+            "budget",
+            "balanced",
+            "premium"
+          ],
+          "type": "string"
+        },
+        "sim_threshold": {
+          "default": 0.75,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "features": {
+      "additionalProperties": false,
+      "properties": {
+        "enable_auto_tuning": {
+          "default": false,
+          "type": "boolean"
+        },
+        "enable_canary": {
+          "default": false,
+          "type": "boolean"
+        },
+        "enable_response_debug": {
+          "default": false,
+          "type": "boolean"
+        },
+        "enable_shadow_mode": {
+          "default": false,
+          "type": "boolean"
+        },
+        "enable_streaming": {
+          "default": false,
+          "type": "boolean"
+        },
+        "enable_two_phase_tools": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "limits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_in_flight_global": {
+          "default": 16,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_in_flight_per_model": {
+          "default": 4,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_in_flight_per_provider": {
+          "default": 8,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_queue_depth": {
+          "default": 200,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "metrics": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": false,
+          "type": "boolean"
+        },
+        "jsonl_path": {
+          "description": "Optional JSONL path for routing outcome metrics (no prompts).",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "paths": {
+      "additionalProperties": false,
+      "properties": {
+        "embedding_model_path": {
+          "description": "Local GGUF embedding model path (llama.cpp-compatible).",
+          "minLength": 1,
+          "type": "string"
+        },
+        "knn_dataset_path": {
+          "description": "Optional path to labeled embeddings dataset (jsonl)",
+          "minLength": 1,
+          "type": "string"
+        },
+        "knn_index_path": {
+          "description": "Optional path to serialized ANN index",
+          "minLength": 1,
+          "type": "string"
+        },
+        "manifest_path": {
+          "description": "Path to capability manifest JSON",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "manifest_path"
+      ],
+      "type": "object"
+    },
+    "routing": {
+      "additionalProperties": false,
+      "properties": {
+        "default_virtual_model": {
+          "default": "signalgate/auto",
+          "type": "string"
+        },
+        "enable_stickiness": {
+          "default": true,
+          "type": "boolean"
+        },
+        "provider_preference": {
+          "default": [
+            "gemini",
+            "openai",
+            "other"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "stickiness_key": {
+          "default": "conversation",
+          "enum": [
+            "conversation",
+            "user",
+            "channel"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "security": {
+      "additionalProperties": false,
+      "properties": {
+        "auth": {
+          "additionalProperties": false,
+          "properties": {
+            "allow_health": {
+              "default": true,
+              "type": "boolean"
+            },
+            "enabled": {
+              "default": false,
+              "type": "boolean"
+            },
+            "header": {
+              "default": "x-signalgate-token",
+              "type": "string"
+            },
+            "token_env": {
+              "default": "SIGNALGATE_TOKEN",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "forward_user": {
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "default": "hash",
+              "enum": [
+                "drop",
+                "hash",
+                "passthrough"
+              ],
+              "type": "string"
+            },
+            "salt_env": {
+              "default": "SIGNALGATE_USER_SALT",
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "max_body_bytes": {
+          "default": 1000000,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "request_fields": {
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "default": "passthrough",
+              "enum": [
+                "passthrough",
+                "strip_unknown"
+              ],
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "upstreams": {
+          "additionalProperties": false,
+          "properties": {
+            "allow_http": {
+              "default": false,
+              "type": "boolean"
+            },
+            "allowlist": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "type": "array"
+              },
+              "description": "Map provider -> allowed hostnames for base_url",
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "server": {
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "default": "127.0.0.1",
+          "type": "string"
+        },
+        "log_level": {
+          "default": "info",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "type": "string"
+        },
+        "port": {
+          "default": 8765,
+          "maximum": 65535,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "router_wall_deadline_seconds": {
+          "default": 60,
+          "minimum": 1,
+          "type": "number"
+        },
+        "uds_path": {
+          "description": "Optional Unix domain socket path for binding instead of host/port",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "host",
+        "port"
+      ],
+      "type": "object"
+    },
+    "shadow": {
+      "additionalProperties": false,
+      "properties": {
+        "fixed_model": {
+          "description": "Optional upstream model override during shadow",
+          "type": "string"
+        },
+        "fixed_upstream": {
+          "description": "Upstream key to route to when shadow mode is enabled",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "two_phase": {
+      "additionalProperties": false,
+      "properties": {
+        "min_margin_for_plan": {
+          "default": 0.03,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "timeouts": {
+      "additionalProperties": false,
+      "properties": {
+        "connect_seconds": {
+          "default": 3,
+          "minimum": 0.1,
+          "type": "number"
+        },
+        "first_byte_seconds": {
+          "default": 15,
+          "minimum": 0.1,
+          "type": "number"
+        },
+        "read_seconds": {
+          "default": 60,
+          "minimum": 0.1,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "upstreams": {
+      "additionalProperties": false,
+      "properties": {
+        "gemini": {
+          "additionalProperties": false,
+          "properties": {
+            "api_key_env": {
+              "default": "GEMINI_API_KEY",
+              "type": "string"
+            },
+            "api_version": {
+              "default": "v1beta",
+              "type": "string"
+            },
+            "base_url": {
+              "default": "https://generativelanguage.googleapis.com",
+              "type": "string"
+            }
+          },
+          "required": [
+            "api_key_env"
+          ],
+          "type": "object"
+        },
+        "openai": {
+          "additionalProperties": false,
+          "properties": {
+            "api_key_env": {
+              "default": "OPENAI_API_KEY",
+              "type": "string"
+            },
+            "base_url": {
+              "default": "https://api.openai.com/v1",
+              "type": "string"
+            },
+            "default_model": {
+              "description": "Default model to use when none provided",
+              "type": "string"
+            }
+          },
+          "required": [
+            "base_url",
+            "api_key_env"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "openai"
+      ],
+      "type": "object"
+    },
+    "version": {
+      "description": "Bump on any config semantic change. Should be included in _signalgate.router_version composition.",
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "required": [
+    "version",
+    "server",
+    "paths",
+    "upstreams"
+  ],
+  "title": "SignalGate Runtime Config",
+  "type": "object"
+}

@@ -1,0 +1,16 @@
+# Local runtime config
+config.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Build artifacts
+*.egg-info/
+dist/
+.build/
+
+# Local datasets / indices (may contain derived data)
+data/*.index
+data/knn_dataset.jsonl

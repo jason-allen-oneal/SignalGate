@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalgate.dev/schema/knn_dataset.schema.json",
+  "title": "SignalGate KNN Dataset Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label", "embedding", "created_at"],
+  "properties": {
+    "id": { "type": "string", "minLength": 8 },
+    "label": { "type": "string", "enum": ["budget", "balanced", "premium"] },
+    "embedding": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 8
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

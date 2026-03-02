@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# minimal build tooling
+RUN python -m pip install --no-cache-dir -U pip
+
+# install project
+COPY pyproject.toml README.md /app/
+COPY signalgate /app/signalgate
+COPY docs /app/docs
+
+RUN python -m pip install --no-cache-dir '.[dev]'
+
+EXPOSE 8765
+
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python", "-m", "signalgate.cli"]

@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://signalgate.dev/schema/manifest.schema.json",
+  "title": "SignalGate Capability Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "models", "tiers"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Bump whenever manifest changes. Should match/roll into _signalgate.router_version.",
+      "minLength": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "ISO-8601 timestamp",
+      "format": "date-time"
+    },
+    "models": {
+      "type": "object",
+      "description": "Map of internal model keys to upstream capability entries",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/definitions/modelEntry"
+      }
+    },
+    "tiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["budget", "balanced", "premium"],
+      "properties": {
+        "budget": { "$ref": "#/definitions/tierPool" },
+        "balanced": { "$ref": "#/definitions/tierPool" },
+        "premium": { "$ref": "#/definitions/tierPool" }
+      }
+    },
+    "providerPreference": {
+      "type": "array",
+      "description": "Default provider preference order used as a bias term",
+      "items": { "type": "string" },
+      "minItems": 1
+    }
+  },
+  "definitions": {
+    "tierPool": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Ordered list of model keys referencing the `models` map"
+    },
+    "modelEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "model_id",
+        "eligible_tiers",
+        "supports",
+        "limits"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Upstream provider family. Examples: gemini, openai, anthropic, mistral, openrouter"
+        },
+        "model_id": { "type": "string", "minLength": 1 },
+        "eligible_tiers": {
+          "type": "array",
+          "items": { "enum": ["budget", "balanced", "premium"] },
+          "minItems": 1
+        },
+        "supports": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tools", "json_schema", "streaming"],
+          "properties": {
+            "tools": { "type": "boolean" },
+            "json_schema": { "type": "boolean" },
+            "streaming": { "type": "boolean" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["context_window_tokens", "max_output_tokens"],
+          "properties": {
+            "context_window_tokens": { "type": "integer", "minimum": 1024 },
+            "max_output_tokens": { "type": "integer", "minimum": 256 }
+          }
+        },
+        "pricing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input_usd_per_1m", "output_usd_per_1m"],
+          "properties": {
+            "input_usd_per_1m": { "type": "number", "minimum": 0 },
+            "output_usd_per_1m": { "type": "number", "minimum": 0 }
+          }
+        },
+        "routing": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cost_weight": { "type": "number" },
+            "latency_weight": { "type": "number" },
+            "preference_bias": { "type": "number" }
+          }
+        },
+        "health": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "breaker_enabled": { "type": "boolean" },
+            "timeouts": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "connect_seconds": { "type": "number", "minimum": 0.1 },
+                "first_byte_seconds": { "type": "number", "minimum": 0.1 },
+                "read_seconds": { "type": "number", "minimum": 0.1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

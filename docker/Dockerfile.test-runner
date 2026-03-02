@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN python -m pip install --no-cache-dir -U pip \
+  && python -m pip install --no-cache-dir httpx
+
+COPY docker/test_runner.py /app/test_runner.py
+
+CMD ["python", "/app/test_runner.py"]
