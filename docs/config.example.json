@@ -70,6 +70,9 @@
     "max_in_flight_per_model": 4,
     "max_queue_depth": 200
   },
+  "cost": {
+    "baseline_model_key": "openai_bal"
+  },
   "metrics": {
     "enabled": false,
     "jsonl_path": "./data/metrics.jsonl"

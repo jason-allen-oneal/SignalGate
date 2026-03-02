@@ -1,4 +1,4 @@
-# Spec: SignalGate - semantic tier router for OpenClaw (internal)
+# Spec: SignalGate - semantic tier router for OpenClaw
 
 ## 0) Summary
 We want a local, OpenAI-compatible proxy on `127.0.0.1:<port>` that receives normal OpenAI Chat Completions style requests from OpenClaw and forwards them to an underlying provider model chosen at call time.
@@ -19,7 +19,7 @@ No prompt rewriting. Minimal policy surface.
 ## 2) Non-goals
 - No prompt rewriting, prompt compression, or chain-of-thought shaping.
 - No complex rules engine. Only lightweight capability gates + similarity uncertainty handling.
-- Not a public product. No multi-tenant auth, no external exposure.
+- No multi-tenant auth. Do not expose directly to the public internet without an authenticating reverse proxy and explicit rate limits.
 
 ## 3) Terminology
 - Tier: one of {budget, balanced, premium}.
@@ -66,8 +66,8 @@ Minimum fields:
 - `_signalgate.similarity.top1` (float 0..1)
 - `_signalgate.similarity.top2` (float 0..1)
 - `_signalgate.similarity.margin` (float)
-- `_signalgate.cost` (object with input_tokens, output_tokens, usd_estimate)
-- `_signalgate.savings_percent` (float, relative to configured baseline)
+- `_signalgate.cost` (object with prompt_tokens, completion_tokens, usd_estimate, estimated_tokens)
+- `_signalgate.savings_percent` (float percent, relative to configured baseline)
 - `_signalgate.request_id` (string, unique per request)
 - `_signalgate.router_version` (string)
 
@@ -185,7 +185,7 @@ Schema:
 Runtime config:
 - `docs/config.schema.json` defines the JSON Schema for SignalGate runtime configuration.
 - `docs/config.example.json` provides a starting point.
-- Config should specify `manifest_path`, classifier thresholds, breaker settings, budgets, and feature flags.
+- Config should specify `manifest_path`, classifier thresholds, breaker settings, budgets, feature flags, and (optionally) a cost baseline model key for `savings_percent`.
 
 Each upstream model entry should include:
 - provider (gemini|openai|other)

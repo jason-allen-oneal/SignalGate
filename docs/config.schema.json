@@ -255,6 +255,16 @@
       },
       "type": "object"
     },
+    "cost": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline_model_key": {
+          "description": "Manifest model key used as the baseline for savings_percent.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "metrics": {
       "additionalProperties": false,
       "properties": {

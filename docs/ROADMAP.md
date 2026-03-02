@@ -1,4 +1,4 @@
-# SignalGate - Build Roadmap (internal)
+# SignalGate - Build Roadmap
 
 Purpose: this roadmap is the build contract. Agents use it to know what we are building and what "done" means at each stage.
 
@@ -13,7 +13,7 @@ Rules
 Goal: freeze the spec and project structure so implementation work does not drift.
 
 Deliverables
-- Spec: `docs/SPEC.md` updated and internally consistent.
+- Spec: `docs/SPEC.md` updated and consistent with code and docs.
 - Capability manifest schema + example:
   - `docs/manifest.schema.json`
   - `docs/manifest.example.json`
@@ -181,7 +181,7 @@ Exit criteria
 
 ---
 
-## Stage 10 - v1.0.0 internal GA
+## Stage 10 - v1.0.0 GA
 Goal: stable enough to become the primary model routing path for your environment.
 
 Deliverables

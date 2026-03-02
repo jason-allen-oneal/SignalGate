@@ -131,7 +131,7 @@ Notes
 ---
 
 ## Stage 10 - v1.0.0 GA
-- [x] Default config tuned on real workload
+- [ ] Default config tuned on real workload
 - [x] Full regression suite + load test profile
 - [x] Metrics dashboard spec + SLO targets
 - [x] Incident mode toggles (pin balanced, disable classifier, etc)
@@ -139,3 +139,6 @@ Notes
 
 Notes
 - Incident mode supported via `incident_pin_tier` and `incident_disable_classifier`.
+- Load profile: `scripts/load_test.py` + `docs/LOAD_TESTING.md`.
+- Metrics spec: `docs/METRICS.md`. `GET /metrics` implemented (JSON counters).
+- Cost accounting now populates `_signalgate.cost` when possible; budgets consume the estimate.

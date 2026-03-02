@@ -23,8 +23,13 @@ class LoadedArtifacts:
     @property
     def router_version(self) -> str:
         # Deterministic composition. Classifier artifacts version not yet implemented.
+        from .util import stable_hash
+
         manifest_version = str(self.manifest_raw.get("version", ""))
-        return f"code={__version__};config={self.config.version};manifest={manifest_version}"
+        mh = stable_hash(self.manifest_raw)[:12]
+        return (
+            f"code={__version__};config={self.config.version};manifest={manifest_version};manifest_hash={mh}"
+        )
 
 
 def _project_root() -> Path:

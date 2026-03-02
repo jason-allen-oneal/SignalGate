@@ -4,7 +4,7 @@
 
 SignalGate is a semantic routing layer for OpenClaw. It exposes an OpenAI-compatible API on loopback and routes each request to the right upstream model tier (budget, balanced, premium) using local embeddings + KNN and hard capability gates.
 
-Status: public preview. Current version: 1.0.3
+Status: released. Current version: 1.0.3
 
 ## Why it exists
 - Stop defaulting every prompt to the most expensive model.
@@ -20,6 +20,7 @@ Status: public preview. Current version: 1.0.3
   - `GET /healthz`
   - `GET /readyz`
   - `GET /v1/models`
+  - `GET /metrics` (lightweight JSON counters)
   - `POST /v1/chat/completions` (streaming and non-streaming)
 
 ### Virtual models
@@ -81,6 +82,7 @@ Key controls are configured via `security.*` in runtime config:
 Optional (v1.0.3):
 - Two-phase tools routing: `features.enable_two_phase_tools=true` (tuning: `two_phase.min_margin_for_plan`).
 - Metrics JSONL sink (routing outcomes only, no prompts): `metrics.enabled=true` + `metrics.jsonl_path`.
+- Cost baseline for savings percent: `cost.baseline_model_key=<manifest model key>`.
 
 ## Running
 
@@ -107,6 +109,9 @@ uv run signalgate
 
 ## Testing
 See `docs/TESTING.md`.
+
+## Load testing
+See `docs/LOAD_TESTING.md`.
 
 Default suite:
 ```bash

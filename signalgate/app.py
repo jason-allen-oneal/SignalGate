@@ -15,6 +15,7 @@ from .canary import CanaryConfig, is_canary_user
 from .classifier import KNNTierClassifier
 from .embeddings import Embedder, build_embedder
 from .errors import SGError, sg_payload_too_large, sg_queue_full, sg_unauthorized
+from .costing import compute_cost, savings_percent
 from .health import HealthManager
 from .limits import LimitManager
 from .metrics import MetricsConfig, append_jsonl
@@ -81,12 +82,37 @@ class RuntimeState:
             (bud_raw.get("degradation") or {}).get("preserve_premium_for_high_risk", True)
         )
 
+        # Cost/savings baseline (Spec: cost accounting)
+        cost_raw = artifacts.config_raw.get("cost", {}) or {}
+        self.baseline_model_key = str(cost_raw.get("baseline_model_key", "") or "")
+        self.baseline_pricing: dict[str, float] | None = None
+        self.baseline_model_id: str | None = None
+        self.baseline_provider: str | None = None
+        if self.baseline_model_key:
+            entry = (artifacts.manifest_raw.get("models") or {}).get(self.baseline_model_key)
+            if isinstance(entry, dict):
+                self.baseline_pricing = {
+                    k: float(v)
+                    for k, v in (entry.get("pricing") or {}).items()
+                    if v is not None
+                }
+                self.baseline_model_id = str(entry.get("model_id") or "") or None
+                self.baseline_provider = str(entry.get("provider") or "") or None
+
         # Shadow metrics (Stage 8): optional JSONL sink for routing outcomes.
         metrics_raw = artifacts.config_raw.get("metrics", {}) or {}
         self.metrics = MetricsConfig(
             enabled=bool(metrics_raw.get("enabled", False)),
             jsonl_path=str(metrics_raw.get("jsonl_path", "")),
         )
+
+        # Lightweight in-process metrics endpoint (Spec: /metrics recommended)
+        from collections import Counter
+
+        self._stats_lock = asyncio.Lock()
+        self._requests_total = 0
+        self._routed_total = Counter()  # labels: tier|provider|model
+        self._errors_total = Counter()  # labels: code
 
         self.upstreams: Upstreams = build_upstreams(artifacts.config, artifacts.config_raw)
 
@@ -269,6 +295,11 @@ def create_app() -> FastAPI:
             "router_version": rt.artifacts.router_version if rt else "",
         }
 
+        if rt:
+            async with rt._stats_lock:
+                rt._requests_total += 1
+                rt._errors_total[exc.code] += 1
+
         upstream = exc.upstream
         # Never return upstream bodies unless response debug is enabled.
         if upstream and rt and not rt.artifacts.config.features.enable_response_debug:
@@ -311,6 +342,16 @@ def create_app() -> FastAPI:
                 "max_in_flight_per_model": rt.max_in_flight_per_model,
             },
         }
+
+    @app.get("/metrics")
+    async def metrics():
+        rt: RuntimeState = state["rt"]
+        async with rt._stats_lock:
+            return {
+                "requests_total": rt._requests_total,
+                "routed_total": dict(rt._routed_total),
+                "errors_total": dict(rt._errors_total),
+            }
 
     @app.get("/v1/models")
     async def list_models():
@@ -713,6 +754,30 @@ def create_app() -> FastAPI:
             assert upstream_resp is not None
             assert used is not None
 
+            # Cost accounting (Spec)
+            routed_cost = None
+            savings = None
+            if isinstance(upstream_resp, dict):
+                routed_cost = compute_cost(
+                    pricing=used.pricing,
+                    caps_prompt_tokens=caps.estimated_prompt_tokens,
+                    resp=upstream_resp,
+                )
+                if rt.baseline_pricing and routed_cost.usd_estimate is not None:
+                    pt = routed_cost.prompt_tokens
+                    ct = routed_cost.completion_tokens
+                    b_in = rt.baseline_pricing.get("input_usd_per_1m")
+                    b_out = rt.baseline_pricing.get("output_usd_per_1m")
+                    baseline_usd = None
+                    try:
+                        if b_in is not None and b_out is not None:
+                            baseline_usd = ((pt * float(b_in)) + (ct * float(b_out))) / 1_000_000.0
+                    except Exception:
+                        baseline_usd = None
+                    savings = savings_percent(
+                        routed_usd=routed_cost.usd_estimate, baseline_usd=baseline_usd
+                    )
+
             meta = {
                 "routed_provider": used.provider,
                 "routed_model": used.model_id,
@@ -726,19 +791,26 @@ def create_app() -> FastAPI:
                 "decision_trace": trace
                 if rt.artifacts.config.features.enable_response_debug
                 else None,
-                "cost": None,
-                "savings_percent": None,
+                "cost": routed_cost.__dict__ if routed_cost else None,
+                "savings_percent": savings,
                 "latency_ms": int((time.time() - t0) * 1000),
             }
 
             # Add metadata at top level to avoid breaking OpenAI parsing.
             if isinstance(upstream_resp, dict):
                 upstream_resp["_signalgate"] = meta
-                # Record real cost in budget (if usage available)
-                usage = upstream_resp.get("usage")
-                if usage and tier == "premium":
-                    # rough calc
-                    rt.budgets.check_and_record(tier=tier, provider=used.provider, cost=0.001)
+
+                # Record cost in budget manager (if we can estimate it)
+                if routed_cost and routed_cost.usd_estimate is not None:
+                    rt.budgets.check_and_record(
+                        tier=tier, provider=used.provider, cost=float(routed_cost.usd_estimate)
+                    )
+
+                async with rt._stats_lock:
+                    rt._requests_total += 1
+                    rt._routed_total[f"tier:{tier}"] += 1
+                    rt._routed_total[f"provider:{used.provider}"] += 1
+                    rt._routed_total[f"model:{used.provider}:{used.model_id}"] += 1
 
                 # Shadow metrics sink (Stage 8)
                 if rt.metrics.enabled and rt.metrics.jsonl_path:
@@ -756,6 +828,8 @@ def create_app() -> FastAPI:
                             "two_phase": two_phase,
                             "attempts": attempted,
                             "latency_ms": meta.get("latency_ms"),
+                            "cost_usd": routed_cost.usd_estimate if routed_cost else None,
+                            "savings_percent": savings,
                         },
                     )
 
