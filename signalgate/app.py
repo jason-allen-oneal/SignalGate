@@ -13,9 +13,9 @@ from fastapi.responses import JSONResponse
 from .budgets import BudgetManager
 from .canary import CanaryConfig, is_canary_user
 from .classifier import KNNTierClassifier
+from .costing import compute_cost, savings_percent
 from .embeddings import Embedder, build_embedder
 from .errors import SGError, sg_payload_too_large, sg_queue_full, sg_unauthorized
-from .costing import compute_cost, savings_percent
 from .health import HealthManager
 from .limits import LimitManager
 from .metrics import MetricsConfig, append_jsonl

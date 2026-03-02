@@ -59,7 +59,11 @@ def cost_config(tmp_path, monkeypatch: pytest.MonkeyPatch):
                 "routing": {"preference_bias": 0.0, "latency_weight": 0.0, "cost_weight": 1.0},
             },
         },
-        "tiers": {"budget": ["gemini_bal"], "balanced": ["gemini_bal", "openai_bal"], "premium": ["openai_bal"]},
+        "tiers": {
+            "budget": ["gemini_bal"],
+            "balanced": ["gemini_bal", "openai_bal"],
+            "premium": ["openai_bal"],
+        },
     }
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -68,7 +72,11 @@ def cost_config(tmp_path, monkeypatch: pytest.MonkeyPatch):
         "version": "0.1.0",
         "server": {"host": "127.0.0.1", "port": 8765},
         "paths": {"manifest_path": str(manifest_path)},
-        "features": {"enable_streaming": False, "enable_canary": False, "enable_shadow_mode": False},
+        "features": {
+            "enable_streaming": False,
+            "enable_canary": False,
+            "enable_shadow_mode": False,
+        },
         "routing": {"enable_stickiness": False},
         "cost": {"baseline_model_key": "openai_bal"},
         "upstreams": {
