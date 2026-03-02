@@ -241,7 +241,8 @@ def create_app() -> FastAPI:
                             status_code=500,
                         )
 
-                    # Accept raw token or "Bearer <token>" for compatibility with OpenAI-style clients.
+                    # Accept raw token or "Bearer <token>" for compatibility
+                    # with OpenAI-style clients.
                     if token and token.startswith("Bearer "):
                         token = token[len("Bearer ") :]
 
@@ -323,7 +324,9 @@ def create_app() -> FastAPI:
         return {"object": "list", "data": models}
 
     def _candidate_health_rank(rt: RuntimeState, c: Candidate) -> int:
-        # 0 = healthy (closed), 1 = half-open (trial available), 2 = unavailable (open or trial in flight)
+        # 0 = healthy (closed)
+        # 1 = half-open (trial available)
+        # 2 = unavailable (open or trial in flight)
         if not rt.breakers_enabled:
             return 0
         br = rt.health.breaker(c.provider, c.model_id)
@@ -333,7 +336,9 @@ def create_app() -> FastAPI:
             return 1
         return 0
 
-    def _order_candidates_by_health(rt: RuntimeState, candidates: list[Candidate]) -> list[Candidate]:
+    def _order_candidates_by_health(
+        rt: RuntimeState, candidates: list[Candidate]
+    ) -> list[Candidate]:
         if not candidates:
             return candidates
         healthy: list[Candidate] = []
