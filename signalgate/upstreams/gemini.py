@@ -157,6 +157,21 @@ class GeminiUpstream:
         except Exception:
             text_out = ""
 
+        usage = None
+        try:
+            um = data.get("usageMetadata") or {}
+            pt = um.get("promptTokenCount")
+            ct = um.get("candidatesTokenCount")
+            tt = um.get("totalTokenCount")
+            if pt is not None and ct is not None:
+                usage = {
+                    "prompt_tokens": int(pt),
+                    "completion_tokens": int(ct),
+                    "total_tokens": int(tt) if tt is not None else int(pt) + int(ct),
+                }
+        except Exception:
+            usage = None
+
         return {
             "id": f"gemini-{os.urandom(8).hex()}",
             "object": "chat.completion",
@@ -169,7 +184,7 @@ class GeminiUpstream:
                     "finish_reason": "stop",
                 }
             ],
-            "usage": None,
+            "usage": usage,
         }
 
     async def chat_completions_stream(self, payload: dict[str, Any]):
@@ -205,6 +220,7 @@ class GeminiUpstream:
         stream_id = f"gemini-stream-{os.urandom(8).hex()}"
         emitted_role = False
         prev_text = ""
+        last_usage: dict[str, int] | None = None
 
         def _emit(delta_text: str | None, *, finish_reason: str | None = None) -> bytes:
             nonlocal emitted_role
@@ -272,6 +288,21 @@ class GeminiUpstream:
                     except Exception:
                         continue
 
+                    # Track usage when present.
+                    try:
+                        um = evt.get("usageMetadata") or {}
+                        pt = um.get("promptTokenCount")
+                        ct = um.get("candidatesTokenCount")
+                        tt = um.get("totalTokenCount")
+                        if pt is not None and ct is not None:
+                            last_usage = {
+                                "prompt_tokens": int(pt),
+                                "completion_tokens": int(ct),
+                                "total_tokens": int(tt) if tt is not None else int(pt) + int(ct),
+                            }
+                    except Exception:
+                        pass
+
                     # Gemini stream events are full snapshots; emit deltas for OpenAI clients.
                     txt = ""
                     try:
@@ -294,8 +325,25 @@ class GeminiUpstream:
                     if delta:
                         yield _emit(delta)
 
-                # Final frame
-                yield _emit(None, finish_reason="stop")
+                # Final frame (+ usage if known)
+                if last_usage is not None:
+                    obj = {
+                        "id": stream_id,
+                        "object": "chat.completion.chunk",
+                        "created": 0,
+                        "model": model_id,
+                        "choices": [
+                            {"index": 0, "delta": {}, "finish_reason": "stop"}
+                        ],
+                        "usage": last_usage,
+                    }
+                    b = json.dumps(obj, separators=(",", ":"), ensure_ascii=False).encode(
+                        "utf-8"
+                    )
+                    yield b"data: " + b + b"\n\n"
+                else:
+                    yield _emit(None, finish_reason="stop")
+
                 yield b"data: [DONE]\n\n"
 
         except (

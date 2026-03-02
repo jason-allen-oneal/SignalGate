@@ -76,17 +76,24 @@ def compute_cost(
     pricing: dict[str, float] | None,
     caps_prompt_tokens: int,
     resp: dict[str, Any],
-) -> CostEstimate:
+    allow_estimates: bool = False,
+) -> CostEstimate | None:
     usage_tokens = tokens_from_openai_usage(resp.get("usage"))
 
     if usage_tokens is not None:
         pt, ct = usage_tokens
         estimated = False
     else:
+        if not allow_estimates:
+            return None
         pt, ct = estimate_tokens_from_response(caps_prompt_tokens=caps_prompt_tokens, resp=resp)
         estimated = True
 
-    usd = usd_from_pricing(pricing=pricing or {}, prompt_tokens=pt, completion_tokens=ct) if pricing else None
+    usd = (
+        usd_from_pricing(pricing=pricing or {}, prompt_tokens=pt, completion_tokens=ct)
+        if pricing
+        else None
+    )
 
     return CostEstimate(
         prompt_tokens=pt,

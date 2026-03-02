@@ -83,6 +83,7 @@ Optional (v1.0.3):
 - Two-phase tools routing: `features.enable_two_phase_tools=true` (tuning: `two_phase.min_margin_for_plan`).
 - Metrics JSONL sink (routing outcomes only, no prompts): `metrics.enabled=true` + `metrics.jsonl_path`.
 - Cost baseline for savings percent: `cost.baseline_model_key=<manifest model key>`.
+- Cost uses upstream `usage` token counts when available. Estimation is off by default (`cost.allow_estimates=false`).
 
 ## Running
 

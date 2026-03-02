@@ -71,7 +71,8 @@
     "max_queue_depth": 200
   },
   "cost": {
-    "baseline_model_key": "openai_bal"
+    "baseline_model_key": "openai_bal",
+    "allow_estimates": false
   },
   "metrics": {
     "enabled": false,

@@ -261,6 +261,11 @@
         "baseline_model_key": {
           "description": "Manifest model key used as the baseline for savings_percent.",
           "type": "string"
+        },
+        "allow_estimates": {
+          "default": false,
+          "description": "If true, SignalGate may estimate token counts when upstream usage is missing. Default false (prefer real usage only).",
+          "type": "boolean"
         }
       },
       "type": "object"

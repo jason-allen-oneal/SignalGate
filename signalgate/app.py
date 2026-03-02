@@ -85,6 +85,7 @@ class RuntimeState:
         # Cost/savings baseline (Spec: cost accounting)
         cost_raw = artifacts.config_raw.get("cost", {}) or {}
         self.baseline_model_key = str(cost_raw.get("baseline_model_key", "") or "")
+        self.allow_cost_estimates = bool(cost_raw.get("allow_estimates", False))
         self.baseline_pricing: dict[str, float] | None = None
         self.baseline_model_id: str | None = None
         self.baseline_provider: str | None = None
@@ -762,6 +763,7 @@ def create_app() -> FastAPI:
                     pricing=used.pricing,
                     caps_prompt_tokens=caps.estimated_prompt_tokens,
                     resp=upstream_resp,
+                    allow_estimates=rt.allow_cost_estimates,
                 )
                 if rt.baseline_pricing and routed_cost.usd_estimate is not None:
                     pt = routed_cost.prompt_tokens

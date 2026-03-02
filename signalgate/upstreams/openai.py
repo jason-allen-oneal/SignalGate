@@ -80,10 +80,23 @@ class OpenAIUpstream:
 
         SignalGate must not modify streaming frames (client compatibility). Any router
         metadata should be returned via HTTP headers.
+
+        Note: We can request usage accounting by setting stream_options.include_usage.
+        This does not alter the prompt or tool behavior.
         """
 
         url = f"{self.base_url}/chat/completions"
         upstream_meta = {"provider": "openai", "model": payload.get("model"), "url": self.base_url}
+
+        # Ask OpenAI to include usage in the final streamed chunk when possible.
+        # This is request augmentation only (no prompt rewriting).
+        if payload.get("stream") is True:
+            so = payload.get("stream_options")
+            if not isinstance(so, dict):
+                payload = payload | {"stream_options": {"include_usage": True}}
+            else:
+                if so.get("include_usage") is not True:
+                    payload = payload | {"stream_options": {**so, "include_usage": True}}
 
         try:
             async with self._client.stream("POST", url, headers=self._headers(), json=payload) as s:
