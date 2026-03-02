@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-import sys
+import time
 
 import httpx
 
@@ -13,10 +13,9 @@ def main() -> int:
     headers = {"x-signalgate-token": token} if token else {}
 
     # health should be accessible (with retry for startup)
-    import time
     max_retries = 30
     r = None
-    for i in range(max_retries):
+    for _i in range(max_retries):
         try:
             r = httpx.get(f"{base}/healthz", timeout=2)
             if r.status_code == 200:
@@ -24,7 +23,7 @@ def main() -> int:
         except httpx.RequestError:
             pass
         time.sleep(1)
-    
+
     if not r or r.status_code != 200:
         print(f"FAILED: service at {base} never became healthy")
         return 1
@@ -63,7 +62,11 @@ def main() -> int:
         "POST",
         f"{base}/v1/chat/completions",
         headers=headers,
-        json={"model": "signalgate/premium", "stream": True, "messages": [{"role": "user", "content": "ping"}]},
+        json={
+            "model": "signalgate/premium",
+            "stream": True,
+            "messages": [{"role": "user", "content": "ping"}],
+        },
         timeout=20,
     ) as s:
         assert s.status_code == 200

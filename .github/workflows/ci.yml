@@ -22,7 +22,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: Lint (ruff)
-        run: uv run ruff check signalgate tests
+        run: uv run ruff check .
 
       - name: Pytest (non-e2e)
         run: uv run pytest -m "not e2e" -ra

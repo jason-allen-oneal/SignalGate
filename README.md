@@ -1,6 +1,11 @@
 # SignalGate
-[![ci](https://github.com/jason-allen-oneal/SignalGate/actions/workflows/ci.yml/badge.svg)](https://github.com/jason-allen-oneal/SignalGate/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-AGPLv3-blue.svg)](LICENSE)
+
+[![CI](https://github.com/jason-allen-oneal/SignalGate/actions/workflows/ci.yml/badge.svg)](https://github.com/jason-allen-oneal/SignalGate/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/jason-allen-oneal/SignalGate/actions/workflows/codeql.yml/badge.svg)](https://github.com/jason-allen-oneal/SignalGate/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/jason-allen-oneal/SignalGate/badge)](https://securityscorecards.dev/viewer/?uri=github.com/jason-allen-oneal/SignalGate)
+[![License](https://img.shields.io/github/license/jason-allen-oneal/SignalGate)](https://github.com/jason-allen-oneal/SignalGate/blob/main/LICENSE)
+[![Security Policy](https://img.shields.io/badge/security-policy-blue)](https://github.com/jason-allen-oneal/SignalGate/blob/main/SECURITY.md)
+[![Contributing](https://img.shields.io/badge/contributing-guidelines-blue)](https://github.com/jason-allen-oneal/SignalGate/blob/main/CONTRIBUTING.md)
 
 SignalGate is a semantic routing layer for OpenClaw. It exposes an OpenAI-compatible API on loopback and routes each request to the right upstream model tier (budget, balanced, premium) using local embeddings + KNN and hard capability gates.
 
