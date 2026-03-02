@@ -83,8 +83,9 @@ def load_and_validate() -> LoadedArtifacts:
     sec = load_security_config(cfg_raw)
 
     # Enforce upstream constraints
-    enforce_upstream_url(cfg.upstream_openai.base_url, provider="openai", sec=sec)
-    enforce_upstream_url(cfg.upstream_gemini.base_url, provider="gemini", sec=sec)
+    for name, u in cfg.upstreams.items():
+        if u.base_url:
+            enforce_upstream_url(u.base_url, provider=name, sec=sec)
 
     return LoadedArtifacts(
         config=cfg,

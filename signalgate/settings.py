@@ -25,17 +25,12 @@ class PathsConfig:
 
 
 @dataclass(frozen=True)
-class OpenAIUpstreamConfig:
-    base_url: str = "https://api.openai.com/v1"
-    api_key_env: str = "OPENAI_API_KEY"
+class UpstreamConfig:
+    kind: str
+    base_url: str | None
+    api_key_env: str
+    api_version: str | None = None
     default_model: str | None = None
-
-
-@dataclass(frozen=True)
-class GeminiUpstreamConfig:
-    api_key_env: str = "GEMINI_API_KEY"
-    base_url: str = "https://generativelanguage.googleapis.com"
-    api_version: str = "v1beta"
 
 
 @dataclass(frozen=True)
@@ -53,8 +48,7 @@ class RuntimeConfig:
     version: str
     server: ServerConfig
     paths: PathsConfig
-    upstream_openai: OpenAIUpstreamConfig
-    upstream_gemini: GeminiUpstreamConfig
+    upstreams: dict[str, UpstreamConfig]
     features: FeaturesConfig
     raw: dict[str, Any]
 
@@ -80,9 +74,50 @@ def load_runtime_config() -> tuple[RuntimeConfig, dict[str, Any]]:
     server_raw = raw.get("server", {})
     paths_raw = raw.get("paths", {})
     upstreams_raw = raw.get("upstreams", {})
-    openai_raw = upstreams_raw.get("openai", {})
-    gemini_raw = upstreams_raw.get("gemini", {})
     features_raw = raw.get("features", {})
+
+    upstreams: dict[str, UpstreamConfig] = {}
+
+    if not isinstance(upstreams_raw, dict) or not upstreams_raw:
+        upstreams_raw = {}
+
+    for name, u in upstreams_raw.items():
+        if not isinstance(u, dict):
+            continue
+
+        kind = u.get("kind")
+        if not kind:
+            # Backward compatibility: infer only for legacy keys.
+            if name == "openai":
+                kind = "openai_compat"
+            elif name == "gemini":
+                kind = "gemini"
+            else:
+                raise ValueError(
+                    f"Upstream '{name}' missing kind (expected openai_compat|gemini)"
+                )
+
+        if kind == "openai_compat":
+            base_url = str(u.get("base_url", "https://api.openai.com/v1"))
+            api_key_env = str(u.get("api_key_env", "OPENAI_API_KEY"))
+            upstreams[name] = UpstreamConfig(
+                kind="openai_compat",
+                base_url=base_url,
+                api_key_env=api_key_env,
+                default_model=u.get("default_model"),
+            )
+        elif kind == "gemini":
+            base_url = str(u.get("base_url", "https://generativelanguage.googleapis.com"))
+            api_key_env = str(u.get("api_key_env", "GEMINI_API_KEY"))
+            api_version = str(u.get("api_version", "v1beta"))
+            upstreams[name] = UpstreamConfig(
+                kind="gemini",
+                base_url=base_url,
+                api_key_env=api_key_env,
+                api_version=api_version,
+            )
+        else:
+            raise ValueError(f"Unknown upstream kind '{kind}' for '{name}'")
 
     cfg = RuntimeConfig(
         version=str(raw.get("version", "")),
@@ -98,16 +133,7 @@ def load_runtime_config() -> tuple[RuntimeConfig, dict[str, Any]]:
             knn_index_path=paths_raw.get("knn_index_path"),
             embedding_model_path=paths_raw.get("embedding_model_path"),
         ),
-        upstream_openai=OpenAIUpstreamConfig(
-            base_url=str(openai_raw.get("base_url", "https://api.openai.com/v1")),
-            api_key_env=str(openai_raw.get("api_key_env", "OPENAI_API_KEY")),
-            default_model=openai_raw.get("default_model"),
-        ),
-        upstream_gemini=GeminiUpstreamConfig(
-            api_key_env=str(gemini_raw.get("api_key_env", "GEMINI_API_KEY")),
-            base_url=str(gemini_raw.get("base_url", "https://generativelanguage.googleapis.com")),
-            api_version=str(gemini_raw.get("api_version", "v1beta")),
-        ),
+        upstreams=upstreams,
         features=FeaturesConfig(
             enable_streaming=bool(features_raw.get("enable_streaming", False)),
             enable_shadow_mode=bool(features_raw.get("enable_shadow_mode", False)),

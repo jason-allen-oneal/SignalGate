@@ -1,4 +1,4 @@
-# SignalGate - Runbook (internal)
+# SignalGate - Runbook
 
 ## Start
 
@@ -9,8 +9,8 @@
 ### 2) Set upstream credentials
 SignalGate never stores secrets in config files.
 
-For OpenAI upstream:
-- Export the env var named in `upstreams.openai.api_key_env` (default: `OPENAI_API_KEY`).
+For each upstream provider you configured:
+- Export the env var named in `upstreams.<provider>.api_key_env` (example: `OPENAI_API_KEY`, `GEMINI_API_KEY`).
 
 ### 3) Run
 From the repo root:

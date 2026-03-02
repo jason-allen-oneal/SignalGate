@@ -522,32 +522,20 @@
       "type": "object"
     },
     "upstreams": {
-      "additionalProperties": false,
+      "description": "Map of provider name -> upstream config. Provider names must match manifest model entries (models.*.provider) and manifest providerPreference.",
+      "minProperties": 1,
+      "type": "object",
       "properties": {
-        "gemini": {
-          "additionalProperties": false,
-          "properties": {
-            "api_key_env": {
-              "default": "GEMINI_API_KEY",
-              "type": "string"
-            },
-            "api_version": {
-              "default": "v1beta",
-              "type": "string"
-            },
-            "base_url": {
-              "default": "https://generativelanguage.googleapis.com",
-              "type": "string"
-            }
-          },
-          "required": [
-            "api_key_env"
-          ],
-          "type": "object"
-        },
         "openai": {
+          "description": "Legacy OpenAI upstream config (kind optional). Prefer kind=openai_compat.",
           "additionalProperties": false,
           "properties": {
+            "kind": {
+              "enum": [
+                "openai_compat"
+              ],
+              "type": "string"
+            },
             "api_key_env": {
               "default": "OPENAI_API_KEY",
               "type": "string"
@@ -566,12 +554,87 @@
             "api_key_env"
           ],
           "type": "object"
+        },
+        "gemini": {
+          "description": "Legacy Gemini upstream config (kind optional). Prefer kind=gemini.",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "gemini"
+              ],
+              "type": "string"
+            },
+            "api_key_env": {
+              "default": "GEMINI_API_KEY",
+              "type": "string"
+            },
+            "api_version": {
+              "default": "v1beta",
+              "type": "string"
+            },
+            "base_url": {
+              "default": "https://generativelanguage.googleapis.com",
+              "type": "string"
+            }
+          },
+          "required": [
+            "api_key_env"
+          ],
+          "type": "object"
         }
       },
-      "required": [
-        "openai"
-      ],
-      "type": "object"
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "title": "OpenAI-compatible upstream",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "openai_compat"
+              },
+              "base_url": {
+                "type": "string"
+              },
+              "api_key_env": {
+                "type": "string"
+              },
+              "default_model": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "base_url",
+              "api_key_env"
+            ],
+            "type": "object"
+          },
+          {
+            "title": "Gemini upstream",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "gemini"
+              },
+              "base_url": {
+                "type": "string"
+              },
+              "api_version": {
+                "type": "string"
+              },
+              "api_key_env": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "api_key_env"
+            ],
+            "type": "object"
+          }
+        ]
+      }
     },
     "version": {
       "description": "Bump on any config semantic change. Should be included in _signalgate.router_version composition.",

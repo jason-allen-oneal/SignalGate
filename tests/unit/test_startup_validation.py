@@ -57,7 +57,7 @@ def test_load_and_validate_ok(tmp_config: Path):
 
 
 def test_invalid_config_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    # Missing required 'upstreams.openai'
+    # Missing required 'upstreams' entries
     manifest = {
         "version": "0.1.0",
         "models": {},

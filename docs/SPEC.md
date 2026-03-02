@@ -425,7 +425,7 @@ Until multi-provider routing is enabled, Stage 1 can forward all requests to a s
 
 Requirements
 - Upstream base URL: `https://api.openai.com/v1` (configurable)
-- API key must be supplied via environment variable (configured as `upstreams.openai.api_key_env`)
+- API key must be supplied via environment variable (configured as `upstreams.<provider>.api_key_env`)
 - SignalGate must not persist the API key and must not log it.
 - If upstream errors/timeouts occur, return standardized `_signalgate.error.*` and a retryable flag.
 
