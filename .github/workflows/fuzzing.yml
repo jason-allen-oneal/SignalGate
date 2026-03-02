@@ -1,0 +1,30 @@
+name: ClusterFuzzLite PR Fuzzing
+on:
+  pull_request:
+    paths:
+      - 'signalgate/**'
+permissions: read-all
+jobs:
+  PR:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.sanitizer }}-${{ github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [address] # [address, undefined, memory]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.2.2
+      - name: Build Fuzzers
+        uses: google/clusterfuzzlite/actions/build_fuzzers@v1
+        with:
+          language: python
+          sanitizer: ${{ matrix.sanitizer }}
+      - name: Run Fuzzers
+        uses: google/clusterfuzzlite/actions/run_fuzzers@v1
+        with:
+          fuzz-seconds: 600
+          mode: 'pr'
+          sanitizer: ${{ matrix.sanitizer }}
