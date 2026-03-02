@@ -127,5 +127,8 @@ uv run pytest -m e2e
 ## OpenClaw integration
 See `docs/OPENCLAW_INTEGRATION.md`.
 
+## Providers
+See `docs/UPSTREAMS.md` for Gemini, OpenAI, and Anthropic configuration patterns.
+
 ## License
 Licensed under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See [LICENSE](LICENSE).
