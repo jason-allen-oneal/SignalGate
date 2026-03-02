@@ -31,7 +31,7 @@ Status: public preview. Current version: 1.0.3
 
 ### Routing pipeline
 1) Security gates
-- Optional auth header on loopback
+- Optional auth header on loopback (raw token or `Bearer <token>`)
 - Request body size limit
 - Optional request field stripping
 
