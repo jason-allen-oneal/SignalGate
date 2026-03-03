@@ -1,19 +1,19 @@
-FROM python:3.11-slim
+FROM python:3.11-slim@sha256:c8271b1f627d0068857dce5b53e14a9558603b527e46f1f901722f935b786a39
 
 WORKDIR /app
 
-# minimal build tooling
-RUN python -m pip install --no-cache-dir -U pip
+ENV PYTHONUNBUFFERED=1 \
+  PYTHONDONTWRITEBYTECODE=1 \
+  PYTHONPATH=/app
 
-# install project
-COPY pyproject.toml README.md /app/
+# Install locked third-party dependencies with hashes.
+COPY docker/requirements.txt /app/requirements.txt
+RUN python -m pip install --no-cache-dir --require-hashes -r /app/requirements.txt
+
+# Copy app source.
 COPY signalgate /app/signalgate
 COPY docs /app/docs
 
-RUN python -m pip install --no-cache-dir '.[dev]'
-
 EXPOSE 8765
-
-ENV PYTHONUNBUFFERED=1
 
 CMD ["python", "-m", "signalgate.cli"]
