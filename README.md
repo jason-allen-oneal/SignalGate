@@ -1,5 +1,5 @@
 <p align="center">
-<img src="docs/images/banner.png" />
+<img src="docs/images/banner.png" width="700" />
 </p>
 
 # SignalGate
