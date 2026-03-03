@@ -23,3 +23,8 @@ Key controls:
 - By default, user identifiers are hashed before forwarding upstream (`security.forward_user.mode=hash`).
 
 Operational note: do not expose SignalGate directly to the public internet without an authenticating reverse proxy and explicit rate limits.
+
+
+## Reporting a Vulnerability
+
+Please use GitHub Security Advisories to report vulnerabilities: <https://github.com/jason-allen-oneal/SignalGate/security/advisories/new>

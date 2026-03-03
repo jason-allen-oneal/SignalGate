@@ -4,6 +4,8 @@ on:
   push:
   pull_request:
 
+permissions: read-all
+
 jobs:
   unit-integration-regression:
     runs-on: ubuntu-latest

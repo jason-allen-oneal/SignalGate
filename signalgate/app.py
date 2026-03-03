@@ -828,9 +828,6 @@ def create_app() -> FastAPI:
                 "similarity": similarity,
                 "two_phase": two_phase,
                 "attempts": attempted,
-                "decision_trace": trace
-                if rt.artifacts.config.features.enable_response_debug
-                else None,
                 "cost": routed_cost.__dict__ if routed_cost else None,
                 "savings_percent": savings,
                 "latency_ms": int((time.time() - t0) * 1000),
