@@ -1,3 +1,7 @@
+<p align="center">
+<img src="docs/images/banner.png" />
+</p>
+
 # SignalGate
 
 [![CI](https://github.com/jason-allen-oneal/SignalGate/actions/workflows/ci.yml/badge.svg)](https://github.com/jason-allen-oneal/SignalGate/actions/workflows/ci.yml)
