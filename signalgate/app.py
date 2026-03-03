@@ -38,6 +38,55 @@ from .version import __version__
 logger = logging.getLogger("signalgate")
 
 
+_STACKTRACE_MARKERS = (
+    'Traceback (most recent call last):',
+    '  File "',
+)
+
+_BANNED_ERROR_KEYS = {
+    'trace',
+    'traceback',
+    'stack',
+    'stacktrace',
+    'stack_trace',
+    'exc',
+    'exception',
+    'exc_info',
+    'debug_trace',
+    'decision_trace',
+}
+
+
+def _sanitize_for_client(obj: Any) -> Any:
+    """Best-effort scrubber to prevent leaking stack traces or internal debug fields."""
+
+    if obj is None:
+        return None
+
+    if isinstance(obj, str):
+        if any(m in obj for m in _STACKTRACE_MARKERS):
+            return 'redacted'
+        return obj
+
+    if isinstance(obj, (int, float, bool)):
+        return obj
+
+    if isinstance(obj, list):
+        return [_sanitize_for_client(x) for x in obj]
+
+    if isinstance(obj, dict):
+        out: dict[Any, Any] = {}
+        for k, v in obj.items():
+            ks = str(k).lower()
+            if ks in _BANNED_ERROR_KEYS:
+                continue
+            out[k] = _sanitize_for_client(v)
+        return out
+
+    # Fallback for unknown types
+    return str(obj)
+
+
 class RuntimeState:
     def __init__(self, artifacts: LoadedArtifacts):
         self.artifacts = artifacts
@@ -326,7 +375,7 @@ def create_app() -> FastAPI:
                 },
             },
         }
-        return JSONResponse(status_code=exc.status_code, content=body)
+        return JSONResponse(status_code=exc.status_code, content=_sanitize_for_client(body))
 
     @app.exception_handler(Exception)
     async def _unhandled_exception_handler(_req: Request, exc: Exception):
@@ -361,7 +410,7 @@ def create_app() -> FastAPI:
                 },
             },
         }
-        return JSONResponse(status_code=500, content=body)
+        return JSONResponse(status_code=500, content=_sanitize_for_client(body))
 
     @app.get("/healthz")
     async def healthz():
