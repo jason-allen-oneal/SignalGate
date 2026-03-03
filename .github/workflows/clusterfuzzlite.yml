@@ -1,0 +1,32 @@
+name: ClusterFuzzLite
+
+on:
+  workflow_dispatch:
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 0"
+
+permissions: read-all
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Build fuzzers
+        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1
+        with:
+          language: python
+
+      - name: Run fuzzers
+        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1
+        with:
+          mode: code-change
+          fuzz-seconds: 60
