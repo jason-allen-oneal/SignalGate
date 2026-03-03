@@ -8,8 +8,6 @@ import uuid
 from collections import OrderedDict
 from typing import Any
 
-logger = logging.getLogger("signalgate")
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -36,6 +34,8 @@ from .security import maybe_forward_user
 from .upstreams.manager import Upstreams, build_upstreams
 from .util import stable_hash
 from .version import __version__
+
+logger = logging.getLogger("signalgate")
 
 
 class RuntimeState:
