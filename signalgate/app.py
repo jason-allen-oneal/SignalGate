@@ -325,6 +325,41 @@ def create_app() -> FastAPI:
         }
         return JSONResponse(status_code=exc.status_code, content=body)
 
+    @app.exception_handler(Exception)
+    async def _unhandled_exception_handler(_req: Request, exc: Exception):
+        # Defensive: never leak stack traces to clients.
+        rt: RuntimeState | None = state.get("rt")
+        request_id = str(uuid.uuid4())
+
+        logger.exception("Unhandled exception request_id=%s", request_id)
+
+        if rt:
+            async with rt._stats_lock:
+                rt._requests_total += 1
+                rt._errors_total["SG_INTERNAL"] += 1
+
+        message = "Internal server error"
+        if rt and rt.artifacts.config.features.enable_response_debug:
+            message = f"{type(exc).__name__}: {exc}"
+
+        body = {
+            "error": {
+                "message": message,
+                "type": "signalgate_error",
+                "code": "SG_INTERNAL",
+            },
+            "_signalgate": {
+                "request_id": request_id,
+                "router_version": rt.artifacts.router_version if rt else "",
+                "error": {
+                    "code": "SG_INTERNAL",
+                    "message": message,
+                    "retryable": False,
+                },
+            },
+        }
+        return JSONResponse(status_code=500, content=body)
+
     @app.get("/healthz")
     async def healthz():
         return {"ok": True}
