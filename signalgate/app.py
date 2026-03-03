@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import time
 import uuid
 from collections import OrderedDict
 from typing import Any
+
+logger = logging.getLogger("signalgate")
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
