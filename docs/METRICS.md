@@ -4,8 +4,18 @@ This document defines what to measure for SignalGate and suggested SLO targets.
 
 SignalGate has two metric outputs:
 
-- `GET /metrics` - lightweight JSON counters (safe default)
+- `GET /metrics` - lightweight JSON counters and runtime snapshots (safe default)
 - Optional JSONL metrics sink (routing outcomes only, no prompts): `metrics.*` in config
+
+## Current `/metrics` fields
+
+- `requests_total` - total completed requests and SignalGate error responses observed by the app
+- `routed_total` - counters by tier, provider, and provider/model
+- `errors_total` - counters by SignalGate error code
+- `latency_ms` - rolling in-memory latency snapshot with count, p50, p95, and p99
+- `breakers` - current circuit breaker snapshot from the health manager
+
+The latency snapshot is bounded and in-process. It is useful for smoke checks, but it is not a replacement for production telemetry.
 
 ## What to chart (dashboard spec)
 
