@@ -29,6 +29,14 @@ jobs:
       - name: Pytest (non-e2e)
         run: uv run pytest -m "not e2e" -ra
 
+  docker-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.2.2
+
+      - name: Build runtime image
+        run: docker build -t signalgate:ci .
+
   docker-blackbox:
     runs-on: ubuntu-latest
     steps:
