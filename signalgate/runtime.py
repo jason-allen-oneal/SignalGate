@@ -58,9 +58,43 @@ def _optional_file_hash(path_s: str | None) -> str:
         return ""
 
 
+def _patch_config_schema_runtime_extensions(config_schema: dict[str, Any]) -> None:
+    """Keep runtime-only config keys accepted until the public schema is regenerated."""
+
+    props = config_schema.setdefault("properties", {})
+    props.setdefault(
+        "persistence",
+        {
+            "additionalProperties": False,
+            "properties": {
+                "enabled": {"default": False, "type": "boolean"},
+                "sqlite_path": {
+                    "default": "./data/signalgate-state.sqlite3",
+                    "minLength": 1,
+                    "type": "string",
+                },
+            },
+            "type": "object",
+        },
+    )
+
+    classifier = props.get("classifier")
+    if isinstance(classifier, dict):
+        classifier_props = classifier.setdefault("properties", {})
+        classifier_props.setdefault(
+            "incident_pin_tier",
+            {"enum": ["budget", "balanced", "premium"], "type": "string"},
+        )
+        classifier_props.setdefault(
+            "incident_disable_classifier",
+            {"default": False, "type": "boolean"},
+        )
+
+
 def load_and_validate() -> LoadedArtifacts:
     root = _project_root()
     config_schema = load_json(root / "docs" / "config.schema.json")
+    _patch_config_schema_runtime_extensions(config_schema)
     manifest_schema = load_json(root / "docs" / "manifest.schema.json")
 
     cfg, cfg_raw = load_runtime_config()
