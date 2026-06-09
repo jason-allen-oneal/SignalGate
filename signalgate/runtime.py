@@ -6,7 +6,7 @@ from typing import Any
 
 from .errors import SGError
 from .schemas import load_json
-from .security import SecurityConfig, enforce_upstream_url, load_security_config
+from .security import SecurityConfig, enforce_bind_auth, enforce_upstream_url, load_security_config
 from .settings import RuntimeConfig, load_runtime_config
 from .version import __version__
 
@@ -22,18 +22,40 @@ class LoadedArtifacts:
 
     @property
     def router_version(self) -> str:
-        # Deterministic composition. Classifier artifacts version not yet implemented.
         from .util import stable_hash
 
         manifest_version = str(self.manifest_raw.get("version", ""))
         mh = stable_hash(self.manifest_raw)[:12]
+        dataset_hash = _optional_file_hash(self.config.paths.knn_dataset_path)
+        embedder_marker = self.config.paths.embedding_model_path or ""
+        cls_state = "enabled" if self.config_raw.get("classifier", {}).get("enabled") else "disabled"
         return (
-            f"code={__version__};config={self.config.version};manifest={manifest_version};manifest_hash={mh}"
+            f"code={__version__};config={self.config.version};"
+            f"manifest={manifest_version};manifest_hash={mh};"
+            f"classifier={cls_state};dataset_hash={dataset_hash};embedder={stable_hash(embedder_marker)[:12]}"
         )
 
 
 def _project_root() -> Path:
     return Path(__file__).resolve().parent.parent
+
+
+def _optional_file_hash(path_s: str | None) -> str:
+    if not path_s:
+        return ""
+    p = Path(path_s)
+    try:
+        if not p.exists() or not p.is_file():
+            return ""
+        import hashlib
+
+        h = hashlib.sha256()
+        with p.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+                h.update(chunk)
+        return h.hexdigest()[:12]
+    except OSError:
+        return ""
 
 
 def load_and_validate() -> LoadedArtifacts:
@@ -81,6 +103,9 @@ def load_and_validate() -> LoadedArtifacts:
         raise SGError(code="SG_INTERNAL", message="Runtime config missing version", status_code=500)
 
     sec = load_security_config(cfg_raw)
+    server_raw = cfg_raw.get("server", {}) or {}
+    uds_path = server_raw.get("uds_path") if isinstance(server_raw.get("uds_path"), str) else None
+    enforce_bind_auth(cfg.server.host, sec=sec, uds_path=uds_path)
 
     # Enforce upstream constraints
     for name, u in cfg.upstreams.items():
