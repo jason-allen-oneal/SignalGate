@@ -29,7 +29,7 @@ Status: released. Current version: 1.0.3
   - `GET /healthz`
   - `GET /readyz`
   - `GET /v1/models`
-  - `GET /metrics` (lightweight JSON counters)
+  - `GET /metrics` (JSON counters, latency snapshot, breaker state)
   - `POST /v1/chat/completions` (streaming and non-streaming)
 
 ### Virtual models
@@ -42,7 +42,8 @@ Status: released. Current version: 1.0.3
 ### Routing pipeline
 1) Security gates
 - Optional auth header on loopback (raw token or `Bearer <token>`)
-- Request body size limit
+- Non-loopback TCP binds require auth to be enabled
+- Request body size limit enforced from `Content-Length` and actual body bytes
 - Optional request field stripping
 
 2) Capability gates (manifest-driven)
@@ -75,12 +76,15 @@ SignalGate filters candidates by required capabilities inferred from the request
 - OpenAI upstream (chat/completions) including streaming passthrough
 - Gemini upstream (generateContent / streamGenerateContent) via format adaptation (no rewriting)
 
+Note: the example manifest only advertises Gemini capabilities implemented by the current adapter. Gemini text and streaming are enabled; tool-call and JSON-schema routing are directed to an OpenAI-compatible candidate until those Gemini translations are implemented.
+
 ## Security posture (default-secure)
 Key controls are configured via `security.*` in runtime config:
-- Auth token header (recommended)
+- Auth token header (recommended on loopback, required for non-loopback TCP binds)
+- Constant-time auth token comparison
 - HTTPS-only upstream enforcement + hostname allowlist
 - Upstream error-body redaction unless debug
-- Default hashed user forwarding (or drop)
+- Default hashed user forwarding (requires `SIGNALGATE_USER_SALT`) or drop
 - Optional request field stripping (`strip_unknown`) to reduce pass-through surface
 
 ## Configuration
@@ -104,7 +108,8 @@ uv sync --extra dev --extra embed
 ### Start (TCP loopback)
 ```bash
 export SIGNALGATE_CONFIG_PATH=./config.json
-export SIGNALGATE_TOKEN=...  # if auth enabled
+export SIGNALGATE_TOKEN=...       # if auth enabled
+export SIGNALGATE_USER_SALT=...   # required when security.forward_user.mode=hash
 uv run signalgate
 ```
 
@@ -138,6 +143,9 @@ See `docs/OPENCLAW_INTEGRATION.md`.
 
 ## Providers
 See `docs/UPSTREAMS.md` for Gemini, OpenAI, and Anthropic configuration patterns.
+
+## Releases
+See `docs/RELEASE.md`. Release tags are validated against `pyproject.toml`, and the release workflow builds package artifacts with SHA-256 checksums.
 
 ## License
 Licensed under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See [LICENSE](LICENSE).
