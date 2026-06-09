@@ -1,13 +1,13 @@
 {
-  "version": "0.1.0",
-  "generatedAt": "2026-03-01T20:28:00Z",
+  "version": "0.2.0",
+  "generatedAt": "2026-06-09T00:00:00Z",
   "providerPreference": ["gemini", "openai", "other"],
   "models": {
     "gemini_flash": {
       "provider": "gemini",
-      "model_id": "google-antigravity/gemini-3-flash",
+      "model_id": "gemini-1.5-flash",
       "eligible_tiers": ["budget", "balanced"],
-      "supports": { "tools": true, "json_schema": true, "streaming": true },
+      "supports": { "tools": false, "json_schema": false, "streaming": true },
       "limits": { "context_window_tokens": 131072, "max_output_tokens": 8192 },
       "pricing": { "input_usd_per_1m": 0.0, "output_usd_per_1m": 0.0 },
       "routing": { "cost_weight": 1.0, "latency_weight": 0.4, "preference_bias": -0.5 },
@@ -15,28 +15,38 @@
     },
     "gemini_flash_preview": {
       "provider": "gemini",
-      "model_id": "google-gemini-cli/gemini-3-flash-preview",
+      "model_id": "gemini-1.5-flash-latest",
       "eligible_tiers": ["balanced"],
-      "supports": { "tools": true, "json_schema": true, "streaming": true },
+      "supports": { "tools": false, "json_schema": false, "streaming": true },
       "limits": { "context_window_tokens": 131072, "max_output_tokens": 8192 },
       "pricing": { "input_usd_per_1m": 0.0, "output_usd_per_1m": 0.0 },
       "routing": { "cost_weight": 1.0, "latency_weight": 0.4, "preference_bias": -0.4 },
       "health": { "breaker_enabled": true }
     },
-    "openai_premium": {
+    "openai_bal": {
       "provider": "openai",
-      "model_id": "openai-codex/gpt-5.2",
-      "eligible_tiers": ["premium"],
+      "model_id": "gpt-4.1-mini",
+      "eligible_tiers": ["balanced"],
       "supports": { "tools": true, "json_schema": true, "streaming": true },
       "limits": { "context_window_tokens": 131072, "max_output_tokens": 8192 },
       "pricing": { "input_usd_per_1m": 0.0, "output_usd_per_1m": 0.0 },
       "routing": { "cost_weight": 1.0, "latency_weight": 0.5, "preference_bias": -0.2 },
       "health": { "breaker_enabled": true }
+    },
+    "openai_premium": {
+      "provider": "openai",
+      "model_id": "gpt-4.1",
+      "eligible_tiers": ["premium"],
+      "supports": { "tools": true, "json_schema": true, "streaming": true },
+      "limits": { "context_window_tokens": 131072, "max_output_tokens": 8192 },
+      "pricing": { "input_usd_per_1m": 0.0, "output_usd_per_1m": 0.0 },
+      "routing": { "cost_weight": 1.0, "latency_weight": 0.5, "preference_bias": -0.1 },
+      "health": { "breaker_enabled": true }
     }
   },
   "tiers": {
     "budget": ["gemini_flash"],
-    "balanced": ["gemini_flash_preview", "gemini_flash"],
+    "balanced": ["gemini_flash_preview", "gemini_flash", "openai_bal"],
     "premium": ["openai_premium"]
   }
 }
