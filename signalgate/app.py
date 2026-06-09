@@ -8,6 +8,7 @@ import uuid
 from collections import OrderedDict
 from typing import Any
 
+import orjson
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -16,7 +17,7 @@ from .canary import CanaryConfig, is_canary_user
 from .classifier import KNNTierClassifier
 from .costing import compute_cost, savings_percent
 from .embeddings import Embedder, build_embedder
-from .errors import SGError, sg_payload_too_large, sg_queue_full, sg_unauthorized
+from .errors import SGError, sg_bad_request, sg_payload_too_large, sg_queue_full, sg_unauthorized
 from .health import HealthManager
 from .limits import LimitManager
 from .metrics import MetricsConfig, append_jsonl
@@ -30,7 +31,7 @@ from .routing import (
 )
 from .runtime import LoadedArtifacts, load_and_validate
 from .sanitize import RequestFieldConfig, sanitize_chat_completions_payload
-from .security import maybe_forward_user
+from .security import SecurityConfig, maybe_forward_user, tokens_equal
 from .upstreams.manager import Upstreams, build_upstreams
 from .util import stable_hash
 from .version import __version__
@@ -85,6 +86,49 @@ def _sanitize_for_client(obj: Any) -> Any:
 
     # Fallback for unknown types
     return str(obj)
+
+
+def _percentile(values: list[int], pct: float) -> int | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    idx = min(len(ordered) - 1, max(0, round((pct / 100.0) * (len(ordered) - 1))))
+    return int(ordered[idx])
+
+
+def _latency_snapshot(values: list[int]) -> dict[str, int | None]:
+    return {
+        "count": len(values),
+        "p50": _percentile(values, 50),
+        "p95": _percentile(values, 95),
+        "p99": _percentile(values, 99),
+    }
+
+
+def _build_upstream_payload(
+    *,
+    payload: dict[str, Any],
+    candidate: Candidate,
+    security: SecurityConfig,
+    virtual_model: str,
+) -> dict[str, Any]:
+    upstream_payload = dict(payload)
+    upstream_payload["model"] = candidate.model_id
+
+    if virtual_model == "signalgate/chat-only":
+        upstream_payload.pop("tools", None)
+        upstream_payload.pop("tool_choice", None)
+
+    forwarded_user = maybe_forward_user(
+        payload.get("user") if isinstance(payload.get("user"), str) else None,
+        security,
+    )
+    if forwarded_user is None:
+        upstream_payload.pop("user", None)
+    else:
+        upstream_payload["user"] = forwarded_user
+
+    return upstream_payload
 
 
 class RuntimeState:
@@ -159,13 +203,14 @@ class RuntimeState:
             jsonl_path=str(metrics_raw.get("jsonl_path", "")),
         )
 
-        # Lightweight in-process metrics endpoint (Spec: /metrics recommended)
         from collections import Counter
 
         self._stats_lock = asyncio.Lock()
         self._requests_total = 0
         self._routed_total = Counter()  # labels: tier|provider|model
         self._errors_total = Counter()  # labels: code
+        self._latencies_ms: list[int] = []
+        self._latencies_max = 2048
 
         self.upstreams: Upstreams = build_upstreams(artifacts.config, artifacts.config_raw)
 
@@ -270,6 +315,12 @@ class RuntimeState:
     async def aclose(self) -> None:
         await self.upstreams.aclose()
 
+    async def record_latency(self, latency_ms: int) -> None:
+        async with self._stats_lock:
+            self._latencies_ms.append(int(latency_ms))
+            if len(self._latencies_ms) > self._latencies_max:
+                del self._latencies_ms[: len(self._latencies_ms) - self._latencies_max]
+
 
 def create_app() -> FastAPI:
     from contextlib import asynccontextmanager
@@ -325,7 +376,7 @@ def create_app() -> FastAPI:
                     if token and token.startswith("Bearer "):
                         token = token[len("Bearer ") :]
 
-                    if not token or token != expected:
+                    if not token or not tokens_equal(token, expected):
                         raise sg_unauthorized()
 
             return await call_next(request)
@@ -435,10 +486,13 @@ def create_app() -> FastAPI:
     async def metrics():
         rt: RuntimeState = state["rt"]
         async with rt._stats_lock:
+            latencies = list(rt._latencies_ms)
             return {
                 "requests_total": rt._requests_total,
                 "routed_total": dict(rt._routed_total),
                 "errors_total": dict(rt._errors_total),
+                "latency_ms": _latency_snapshot(latencies),
+                "breakers": rt.health.snapshot(),
             }
 
     @app.get("/v1/models")
@@ -508,7 +562,14 @@ def create_app() -> FastAPI:
         t0 = time.time()
         request_id = str(uuid.uuid4())
         try:
-            payload = await req.json()
+            body = await req.body()
+            if len(body) > rt.artifacts.security.max_body_bytes:
+                raise sg_payload_too_large()
+            try:
+                payload = orjson.loads(body)
+            except orjson.JSONDecodeError as e:
+                raise sg_bad_request("Invalid JSON body") from e
+
             # Optional request field stripping (security hardening)
             rf_mode = getattr(rt.artifacts.security, "request_fields_mode", "passthrough")
             payload = sanitize_chat_completions_payload(
@@ -575,21 +636,15 @@ def create_app() -> FastAPI:
             trace.append(f"selected_tier={tier};sticky_key={sticky_key is not None}")
             tier_selected = tier
 
-            upstream_payload = dict(payload)
-            upstream_payload["model"] = candidate.model_id
+            if model == "signalgate/chat-only" and ("tools" in payload or "tool_choice" in payload):
+                trace.append("chat_only: stripped tools/tool_choice before upstream dispatch")
 
-            # Do not forward raw user identifiers upstream by default.
-            forwarded_user = maybe_forward_user(
-                payload.get("user") if isinstance(payload.get("user"), str) else None,
-                rt.artifacts.security,
+            upstream_payload = _build_upstream_payload(
+                payload=payload,
+                candidate=candidate,
+                security=rt.artifacts.security,
+                virtual_model=model,
             )
-            if forwarded_user is None:
-                upstream_payload.pop("user", None)
-            else:
-                upstream_payload["user"] = forwarded_user
-
-            # Multi-provider upstream adapters are available in v1, but capability gating
-            # still determines which providers can satisfy the request.
 
             # Budget enforcement (Stage 8)
             if tier == "premium":
@@ -685,7 +740,8 @@ def create_app() -> FastAPI:
                 await msem.acquire()
                 try:
                     resp = await rt.upstreams.chat_completions(
-                        provider=cand.provider, payload=upstream_payload | {"model": cand.model_id}
+                        provider=cand.provider,
+                        payload=upstream_payload | {"model": cand.model_id},
                     )
                     br.record_success()
                     return resp, cand
@@ -867,6 +923,7 @@ def create_app() -> FastAPI:
                         routed_usd=routed_cost.usd_estimate, baseline_usd=baseline_usd
                     )
 
+            latency_ms = int((time.time() - t0) * 1000)
             meta = {
                 "routed_provider": used.provider,
                 "routed_model": used.model_id,
@@ -879,7 +936,7 @@ def create_app() -> FastAPI:
                 "attempts": attempted,
                 "cost": routed_cost.__dict__ if routed_cost else None,
                 "savings_percent": savings,
-                "latency_ms": int((time.time() - t0) * 1000),
+                "latency_ms": latency_ms,
             }
 
             # Add metadata at top level to avoid breaking OpenAI parsing.
@@ -897,6 +954,9 @@ def create_app() -> FastAPI:
                     rt._routed_total[f"tier:{tier}"] += 1
                     rt._routed_total[f"provider:{used.provider}"] += 1
                     rt._routed_total[f"model:{used.provider}:{used.model_id}"] += 1
+                    rt._latencies_ms.append(latency_ms)
+                    if len(rt._latencies_ms) > rt._latencies_max:
+                        del rt._latencies_ms[: len(rt._latencies_ms) - rt._latencies_max]
 
                 # Shadow metrics sink (Stage 8)
                 if rt.metrics.enabled and rt.metrics.jsonl_path:
