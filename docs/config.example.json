@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "server": {
     "host": "127.0.0.1",
     "port": 8765,
@@ -18,12 +18,8 @@
     "upstreams": {
       "allow_http": false,
       "allowlist": {
-        "openai": [
-          "api.openai.com"
-        ],
-        "gemini": [
-          "generativelanguage.googleapis.com"
-        ]
+        "openai": ["api.openai.com"],
+        "gemini": ["generativelanguage.googleapis.com"]
       }
     },
     "forward_user": {
@@ -33,6 +29,10 @@
     "request_fields": {
       "mode": "strip_unknown"
     }
+  },
+  "persistence": {
+    "enabled": false,
+    "sqlite_path": "./data/signalgate-state.sqlite3"
   },
   "paths": {
     "manifest_path": "./docs/manifest.example.json",
@@ -50,11 +50,7 @@
   },
   "routing": {
     "default_virtual_model": "signalgate/auto",
-    "provider_preference": [
-      "gemini",
-      "openai",
-      "other"
-    ],
+    "provider_preference": ["gemini", "openai", "other"],
     "enable_stickiness": true,
     "stickiness_key": "conversation"
   },
@@ -62,7 +58,9 @@
     "enabled": false,
     "sim_threshold": 0.75,
     "margin_threshold": 0.05,
-    "min_tier_for_high_risk": "balanced"
+    "min_tier_for_high_risk": "balanced",
+    "incident_pin_tier": null,
+    "incident_disable_classifier": false
   },
   "limits": {
     "max_in_flight_global": 16,
@@ -99,12 +97,8 @@
     "enabled": false,
     "window": "day",
     "usd": {
-      "per_provider": {
-        "openai": 0
-      },
-      "per_tier": {
-        "premium": 0
-      }
+      "per_provider": {"openai": 0},
+      "per_tier": {"premium": 0}
     },
     "degradation": {
       "when_premium_exceeded": "degrade_to_balanced",
