@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 from dataclasses import dataclass
 from urllib.parse import urlparse
@@ -42,6 +43,34 @@ def load_security_config(cfg_raw: dict) -> SecurityConfig:
     )
 
 
+def tokens_equal(supplied: str, expected: str) -> bool:
+    """Compare auth tokens without leaking timing differences."""
+
+    return hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
+
+
+def is_loopback_host(host: str) -> bool:
+    normalized = host.strip().lower()
+    return normalized in {"127.0.0.1", "localhost", "::1"}
+
+
+def enforce_bind_auth(host: str, *, sec: SecurityConfig, uds_path: str | None = None) -> None:
+    """Fail closed when binding a TCP listener beyond loopback without auth."""
+
+    if uds_path:
+        return
+    if is_loopback_host(host):
+        return
+    if sec.auth_enabled:
+        return
+    raise SGError(
+        code="SG_INTERNAL",
+        message="security.auth.enabled must be true when binding outside loopback",
+        status_code=500,
+        retryable=False,
+    )
+
+
 def enforce_upstream_url(url: str, *, provider: str, sec: SecurityConfig) -> None:
     p = urlparse(url)
     if not p.scheme or not p.netloc:
@@ -76,8 +105,22 @@ def maybe_forward_user(user: str | None, sec: SecurityConfig) -> str | None:
         return None
     if mode == "passthrough":
         return user
+    if mode != "hash":
+        raise SGError(
+            code="SG_INTERNAL",
+            message=f"Invalid security.forward_user.mode: {mode}",
+            status_code=500,
+            retryable=False,
+        )
 
-    # hash
-    salt = os.environ.get(sec.user_hash_salt_env, "")
+    salt = os.environ.get(sec.user_hash_salt_env)
+    if not salt:
+        raise SGError(
+            code="SG_INTERNAL",
+            message=f"Missing env var {sec.user_hash_salt_env} for hashed user forwarding",
+            status_code=500,
+            retryable=False,
+        )
+
     raw = f"{salt}:{user}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
